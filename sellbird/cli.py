@@ -306,11 +306,8 @@ def cmd_status(args):
                     healthy = False
                     print(f"  Brain:                {label} NOT READY")
                     print(f"                        {problem}")
-                elif brain.provider == "codex":
-                    print(f"  Brain:                {label} ready (CLI, isolation, login, "
-                          "model and account checked; no prompt sent)")
                 else:
-                    print(f"  Brain:                {label} CLI isolation flags present "
+                    print(f"  Brain:                {label} ready (local daemon and model checked; no prompt sent)")
                           "(login not checked: Claude is checked by its first call)")
         elif brain_status.get("status") == "paused":
             label = {"ollama": "Ollama (local)"}.get(brain_status.get("provider"), "Brain")
