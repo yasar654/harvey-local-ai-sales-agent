@@ -18,7 +18,7 @@ def model():
             raise EmbeddingUnavailable(f"Local embedding model not found at {MODEL_PATH}. While online, run `python download_embedding_model.py` in backend/. No download or remote inference is attempted by the app.")
         try:
             from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer(str(MODEL_PATH), device="cpu", local_files_only=True)
+            _model = SentenceTransformer(str(MODEL_PATH), device="cpu")
         except Exception as exc:
             raise EmbeddingUnavailable(f"Could not load the cached embedding model: {exc}") from exc
     return _model
