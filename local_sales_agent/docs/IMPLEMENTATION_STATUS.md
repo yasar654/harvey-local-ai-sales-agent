@@ -31,3 +31,12 @@
 ## Interpreting status
 
 “Implemented in code” means the route/module is present; it is not equivalent to a demonstrated successful live model run. Only mark offline acceptance as passed after disconnecting Wi-Fi/Ethernet on the target computer and successfully repeating every local AI workflow with pre-downloaded models and persisted prospect research.
+
+
+## Latest prepared-workspace checks
+
+- Backend smoke suite: 4 passed, including no-cloud-fallback and manual queued-task retry.
+- Python backend syntax compilation: passed.
+- React JSX syntax transpile check: passed.
+- Npm dependency installation and production build: not verified because required packages were not cached in the build environment.
+- Live Qwen3 inference and disconnected-network acceptance: not yet performed on the target laptop.
