@@ -23,7 +23,7 @@
 | Ollama failure handling | Implemented | HTTP 503, no fallback |
 | Task queue/retry | Implemented as local SQLite/manual retry | `GET /api/tasks`, `POST /api/tasks/{id}/retry`; no automatic worker |
 | Offline acceptance | Not yet executed on target laptop | Follow `OFFLINE_ACCEPTANCE.md` and capture actual evidence |
-| Backend tests | Four initial smoke tests passed in build workspace | Re-run after all branch updates; runtime/model tests remain |
+| Backend tests | Four smoke tests pass in prepared workspace, including queue/no-fallback coverage | Live Ollama inference remains unverified |
 | Frontend build | Not verified | npm install timed out in build environment |
 | Deployment | Not implemented | Local setup is delivery target |
 | Screen recording | Not recorded | Follow `DEMO_SCRIPT.md` |
