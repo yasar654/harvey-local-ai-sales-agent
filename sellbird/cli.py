@@ -308,7 +308,6 @@ def cmd_status(args):
                     print(f"                        {problem}")
                 else:
                     print(f"  Brain:                {label} ready (local daemon and model checked; no prompt sent)")
-                          "(login not checked: Claude is checked by its first call)")
         elif brain_status.get("status") == "paused":
             label = {"ollama": "Ollama (local)"}.get(brain_status.get("provider"), "Brain")
             print(f"  Brain:                {label} PAUSED since {brain_status.get('since', '?')}")
