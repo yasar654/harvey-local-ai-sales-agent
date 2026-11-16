@@ -1,0 +1,5 @@
+Harvey Local AI Sales Agent multi-product app
+
+This subproject is independently authored for the EDXSO Assignment 2 local AI sales-agent workflow and is MIT-licensed by local_sales_agent/LICENSE.
+
+The parent repository is a fork of ethanplusai/sellbird (the current destination of the assignment's ethanplusai/harvey URL). Parent-level files retain their upstream AGPL-3.0-only licensing and notices. This folder does not replace the parent licence.
