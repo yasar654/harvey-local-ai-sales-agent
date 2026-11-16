@@ -237,8 +237,7 @@ def cmd_status(args):
         print(f"  Active campaigns:     {summary['active_campaigns']}")
         print(f"  Open conversations:   {summary['open_conversations']}")
         by_provider = summary.get("usage_today_by_provider", {})
-        print(f"  Claude calls today:   {by_provider.get('claude', summary['usage_today'])}")
-        print(f"  Codex calls today:    {by_provider.get('codex', 0)}")
+        print(f'  Local Ollama calls today: {by_provider.get("ollama", summary["usage_today"])}')
         from sellbird.config import compliance_notice, load_config, sending_notice
         loaded = None
         try:
@@ -314,7 +313,7 @@ def cmd_status(args):
                     print(f"  Brain:                {label} CLI isolation flags present "
                           "(login not checked: Claude is checked by its first call)")
         elif brain_status.get("status") == "paused":
-            label = {"claude": "Claude", "codex": "Codex"}.get(brain_status.get("provider"), "Brain")
+            label = {"ollama": "Ollama (local)"}.get(brain_status.get("provider"), "Brain")
             print(f"  Brain:                {label} PAUSED since {brain_status.get('since', '?')}")
             print(f"                        {brain_status.get('reason', '')}")
         print()
@@ -356,7 +355,7 @@ def cmd_usage(args):
         except Exception:
             pass
 
-        label = {"claude": "Claude", "codex": "Codex"}.get(provider, "Brain")
+        label = {"ollama": "Ollama (local)"}.get(provider, "Brain")
         print(f"\n  {label} Usage")
         print("  " + "=" * 52)
         if windows:
@@ -383,7 +382,7 @@ def cmd_usage(args):
             )
 
         by_provider = await state.usage_by_provider(days=args.days)
-        if len(by_provider) > 1 or (by_provider and by_provider[0]["provider"] != "claude"):
+        if len(by_provider) > 1 or (by_provider and by_provider[0]["provider"] != "ollama"):
             print(f"\n  By provider (last {args.days} days):")
             for row in by_provider:
                 print(
@@ -409,8 +408,7 @@ def cmd_usage(args):
                     f"{row['output_tokens']:>10,} out tokens"
                 )
         print(
-            "\n  Subscription plans aren't billed per token — these are usage"
-            "\n  counts, not costs.\n"
+            "\n  All model calls use the local Ollama daemon; this ledger records local inference.\n"
         )
 
     asyncio.run(_usage())
