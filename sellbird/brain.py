@@ -40,7 +40,7 @@ _NON_RETRYABLE_PATTERNS = (
 )
 
 
-PROVIDER_LABELS = {"claude": "Claude", "codex": "Codex"}
+PROVIDER_LABELS = {"ollama": "Ollama (local)"}
 
 # Settings key holding the brain's last health transition, for `sellbird
 # status` and the dashboard: {"provider", "status": "ok"|"paused", "reason",
@@ -113,6 +113,16 @@ class Brain:
         self.provider = self.config.provider
         self.model = self.config.model
         self.codex = None
+        self.ollama = None
+        if self.provider != "ollama":
+            raise ValueError("Only local Ollama inference is enabled; cloud providers are disabled.")
+        if transport is not None:
+            raise ValueError("Custom transports are disabled for Ollama: inference must remain local.")
+        from sellbird.ollama_runtime import OllamaClient
+        self.ollama = OllamaClient(
+            model=self.model,
+            base_url=self.config.base_url or None,
+        )
         # Whether the last think_json got no reply at all (an outage, logout,
         # rate limit or timeout), as opposed to a reply that wasn't valid
         # JSON. Callers that count model failures must not count outages.
@@ -124,16 +134,9 @@ class Brain:
         self._usage_limited_until = 0.0
         self._usage_pause_recorded = False
         self._status_synced = False
-        if self.provider == "codex":
-            from sellbird.codex import CodexClient, CodexQuotaClient
-            self.codex = CodexClient(
-                model=self.model, reasoning_effort=self.config.reasoning_effort
-            )
-            self.quota = CodexQuotaClient(self.codex)
-        else:
-            # Lazy import avoids a cycle (quota -> usage -> state).
-            from sellbird.integrations.quota import QuotaClient
-            self.quota = QuotaClient()
+        # Local inference has no subscription quota API or token billing.
+        # The existing daily call-count guard remains available.
+        self.quota = None
 
     @property
     def provider_label(self) -> str:
@@ -166,8 +169,16 @@ class Brain:
         PROVIDER_RECHECK_SECONDS, so a persistent problem doesn't start
         runtimes every heartbeat.
         """
-        if self.provider != "codex":
-            return await self._claude_preflight()
+        if self.provider == "ollama":
+            try:
+                details = await self.ollama.preflight()
+            except Exception as e:
+                await self._mark_unavailable(e)
+                return str(e)
+            if self.unavailable:
+                await self._mark_available()
+            logger.info("Local model ready: provider=ollama-local model=%s", details["model"])
+            return ""
         from sellbird.codex import CodexError
 
         await self._expire_usage_pause()
@@ -223,6 +234,8 @@ class Brain:
         return ""
 
     def _fingerprint(self):
+        if self.provider == "ollama":
+            return self.ollama.fingerprint()
         if self.provider == "codex":
             return self.codex.fingerprint()
         from sellbird.claude_runtime import fingerprint
@@ -291,6 +304,11 @@ class Brain:
         ``agent``/``task`` label the call in the usage_events ledger so the
         dashboard can attribute tokens and cost to specific work.
         """
+        if self.provider == "ollama":
+            return await self._think_ollama(
+                prompt, expect_json=expect_json, timeout=timeout,
+                agent=agent, task=task,
+            )
         if self.transport is not None:
             return await self._think_transport(prompt, expect_json=expect_json,
                                                timeout=timeout, agent=agent, task=task)
@@ -678,7 +696,7 @@ class Brain:
             # not be mistaken for room to spend.
             logger.info(f"{self.paused_reason}; waiting for it to reset.")
             return False
-        if max_percent is not None:
+        if max_percent is not None and self.quota is not None:
             try:
                 windows = await self.quota.get_utilization()
             except Exception as e:
@@ -703,6 +721,46 @@ class Brain:
 
         calls = await self.check_usage()
         return calls < max_daily_calls
+
+    async def _think_ollama(
+        self, prompt: str, *, expect_json: bool, timeout: float, agent: str, task: str
+    ) -> str:
+        """Run exactly one inference against the configured local Ollama daemon."""
+        from sellbird.ollama_runtime import OllamaError
+
+        if self.paused_reason:
+            logger.warning("Local inference skipped: %s", self.paused_reason)
+            return ""
+        try:
+            result = await self.ollama.generate(
+                prompt, timeout=timeout, expect_json=expect_json
+            )
+            await self.state.increment_usage(provider="ollama")
+            await self.state.record_usage_event(
+                agent=agent,
+                task=task or agent or "local_inference",
+                session_id="",
+                model=result.model,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+                duration_ms=result.duration_ms,
+                num_turns=1,
+                is_error=False,
+                source="ollama_local",
+                provider="ollama",
+            )
+            logger.info(
+                "LOCAL_INFERENCE provider=ollama model=%s duration_ms=%s agent=%s task=%s",
+                result.model, result.duration_ms, agent or "-", task or "-"
+            )
+            return result.text
+        except Exception as exc:
+            error = exc if isinstance(exc, OllamaError) else OllamaError(
+                f"Local Ollama inference failed ({type(exc).__name__})."
+            )
+            logger.error("LOCAL_INFERENCE_UNAVAILABLE provider=ollama reason=%s", error)
+            await self._mark_unavailable(error)
+            return ""
 
     async def _think_transport(self, prompt: str, *, expect_json: bool, timeout: float,
                                agent: str, task: str) -> str:
