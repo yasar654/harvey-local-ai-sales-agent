@@ -55,13 +55,16 @@ async def generate(prompt: str, event: str, system: str = "You are a careful B2B
         log_event(event, "blocked", 0, "Remote inference endpoint or cloud model tag is forbidden.", DEFAULT_MODEL)
         raise LocalModelUnavailable("Remote inference is disabled. Use a loopback Ollama endpoint and a locally installed model tag; no cloud fallback is permitted.")
     try:
+        request_body = {
+            "model": DEFAULT_MODEL,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            "stream": False,
+            "options": {"temperature": temperature},
+        }
+        if event in {"buying_signal_classification", "prospect_scoring", "reply_classification"}:
+            request_body["format"] = "json"
         async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=3.0), trust_env=False) as client:
-            response = await client.post(f"{OLLAMA_URL}/api/chat", json={
-                "model": DEFAULT_MODEL,
-                "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-                "stream": False,
-                "options": {"temperature": temperature},
-            })
+            response = await client.post(f"{OLLAMA_URL}/api/chat", json=request_body)
             response.raise_for_status()
             payload = response.json()
             content = payload.get("message", {}).get("content", "").strip()
