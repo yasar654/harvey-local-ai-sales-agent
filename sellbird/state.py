@@ -2785,11 +2785,10 @@ class StateManager:
             ) as cursor:
                 auto_reply_handoffs = (await cursor.fetchone())[0]
             async with db.execute(
-                "SELECT claude_calls, codex_calls FROM usage_log WHERE date = ?", (today,)
+                "SELECT claude_calls, codex_calls, ollama_calls FROM usage_log WHERE date = ?", (today,)
             ) as cursor:
                 usage_row = await cursor.fetchone()
-                usage_today = (usage_row[0] or 0) if usage_row else 0
-                codex_today = (usage_row[1] or 0) if usage_row else 0
+                usage_today = (usage_row[2] or 0) if usage_row else 0
 
         return {
             "prospects": prospect_counts,
@@ -2806,8 +2805,8 @@ class StateManager:
             "sending_paused": bool(await self.get_setting("sending_paused")),
             "open_conversations": open_conversations,
             "auto_reply_handoffs": auto_reply_handoffs,
-            "usage_today": usage_today,  # Claude calls (kept for compatibility)
-            "usage_today_by_provider": {"claude": usage_today, "codex": codex_today},
+            "usage_today": usage_today
+            "usage_today_by_provider": {"ollama": usage_today},
             # Companies discovered but not yet read. The heartbeat profiles
             # these every cycle — it is free, so it never competes with the
             # Claude budget the rest of the loop is rationing.
