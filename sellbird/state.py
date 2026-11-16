@@ -558,10 +558,14 @@ MIGRATIONS: list[str] = [
     ALTER TABLE conversations ADD COLUMN mailbox_id TEXT DEFAULT '';
     CREATE INDEX IF NOT EXISTS idx_outbox_mailbox_sent ON outbox(mailbox_id, status, sent_at);
     """,
+    # v17: count local Ollama calls separately from legacy subscription usage.
+    """
+    ALTER TABLE usage_log ADD COLUMN ollama_calls INTEGER DEFAULT 0;
+    """,
 ]
 
-BRAIN_PROVIDERS = ("claude", "codex")
-_USAGE_LOG_COLUMN = {"claude": "claude_calls", "codex": "codex_calls"}
+BRAIN_PROVIDERS = ("ollama",)
+_USAGE_LOG_COLUMN = {"ollama": "ollama_calls"}
 
 # When a company was last profiled: the newer of the explicit check stamp
 # (set on every attempt, reachable or not) and its latest profile observation
@@ -2607,7 +2611,7 @@ class StateManager:
 
     # ── Usage Tracking ──
 
-    async def get_usage_today(self, provider: str = "claude") -> int:
+    async def get_usage_today(self, provider: str = "ollama") -> int:
         """Brain calls made today on one provider's subscription."""
         column = _USAGE_LOG_COLUMN[provider]
         today = date.today().isoformat()
@@ -2618,7 +2622,7 @@ class StateManager:
                 row = await cursor.fetchone()
                 return (row[0] or 0) if row else 0
 
-    async def increment_usage(self, provider: str = "claude"):
+    async def increment_usage(self, provider: str = "ollama"):
         column = _USAGE_LOG_COLUMN[provider]
         today = date.today().isoformat()
         async with self._connect() as db:
@@ -2650,7 +2654,7 @@ class StateManager:
         is_error: bool = False,
         source: str = "result_json",
         created_at: str | None = None,
-        provider: str = "claude",
+        provider: str = "ollama",
     ) -> bool:
         """Insert one usage row (one model within one brain call).
 
