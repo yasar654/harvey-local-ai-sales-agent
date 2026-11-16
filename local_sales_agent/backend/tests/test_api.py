@@ -20,6 +20,19 @@ def test_core_crud_and_no_cloud_fallback(tmp_path, monkeypatch):
         result = client.post(f"/api/ai/icp/{product.json()['id']}")
         assert result.status_code == 503
         assert "no cloud fallback" in result.json()['detail'].lower()
+        # The failed request is queued locally rather than sent to a remote provider.
+        queued = client.get('/api/tasks')
+        assert queued.status_code == 200
+        assert len(queued.json()) == 1
+        task = queued.json()[0]
+        assert task["status"] == "queued"
+        assert task["event"] == "icp_generation"
+        # A manual retry while Ollama is still unavailable must remain queued.
+        retry = client.post(f"/api/tasks/{task['id']}/retry")
+        assert retry.status_code == 503
+        task_after_retry = client.get('/api/tasks').json()[0]
+        assert task_after_retry["status"] == "queued"
+        assert task_after_retry["attempts"] == 1
         assert client.get('/api/logs').status_code == 200
 
 
