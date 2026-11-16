@@ -696,7 +696,7 @@ class UsageConfig(BaseModel):
         return v
 
 
-BRAIN_PROVIDERS = ("claude", "codex")
+BRAIN_PROVIDERS = ("ollama",)
 CODEX_REASONING_EFFORTS = ("minimal", "low", "medium", "high", "xhigh")
 
 # Model names are passed to a CLI, so they must look like a model name and
@@ -705,22 +705,21 @@ _MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/\[\]-]{0,127}$")
 
 
 class BrainConfig(BaseModel):
-    """Which subscription Sellbird thinks with.
+    """Local inference settings. Only the loopback Ollama provider is allowed.
 
-    ``claude`` (default) runs Claude Code headless on your Claude plan.
-    ``codex`` runs Codex on your ChatGPT plan. There is never an automatic
-    fallback between them, and an explicit ``model`` only affects Sellbird —
-    your own Claude Code / Codex settings are never read or changed.
+    The application intentionally has no Claude, Codex, Gemini, OpenAI, or
+    other cloud-model provider option. An Ollama endpoint must be local.
     """
 
-    provider: str = "claude"
-    model: str = ""  # empty = the provider's own default
-    reasoning_effort: str = ""  # codex only; empty = model default
+    provider: str = "ollama"
+    model: str = "qwen3:8b"
+    base_url: str = ""  # blank uses OLLAMA_BASE_URL or localhost default
+    reasoning_effort: str = ""  # retained for config compatibility
 
     @field_validator("provider", mode="before")
     @classmethod
     def _valid_provider(cls, v) -> str:
-        v = str(v or "claude").strip().lower()
+        v = str(v or "ollama").strip().lower()
         if v not in BRAIN_PROVIDERS:
             raise ValueError(
                 f"'{v}' is not a supported brain provider. "
@@ -736,16 +735,17 @@ class BrainConfig(BaseModel):
             raise ValueError(f"'{v}' is not a valid model name.")
         return v
 
+    @field_validator("base_url", mode="before")
+    @classmethod
+    def _valid_base_url(cls, v) -> str:
+        # Network safety, including loopback-only validation, is performed
+        # by OllamaClient before any HTTP request is made.
+        return str(v or "").strip()
+
     @field_validator("reasoning_effort", mode="before")
     @classmethod
     def _valid_effort(cls, v) -> str:
-        v = str(v or "").strip().lower()
-        if v and v not in CODEX_REASONING_EFFORTS:
-            raise ValueError(
-                f"'{v}' is not a valid reasoning effort. "
-                f"Use one of: {', '.join(CODEX_REASONING_EFFORTS)}."
-            )
-        return v
+        return str(v or "").strip().lower()
 
 
 class WriterConfig(BaseModel):
@@ -957,13 +957,10 @@ def load_config(config_path: str | None = None) -> SellbirdConfig:
 
 
 def load_brain_config(config_path: str | None = None) -> BrainConfig:
-    """Read just the ``brain:`` section, without validating the rest.
+    """Read just the brain section, without validating the rest.
 
-    Training runs before a product is configured (the template sellbird.yaml
-    still has placeholder values), but it must still think with the
-    provider the user chose. A missing file or section means the Claude
-    default; an invalid section raises rather than silently switching
-    providers.
+    A missing file or section means the local Ollama default. Invalid or
+    non-local providers raise; the loader never silently switches providers.
     """
     if config_path is None:
         try:
