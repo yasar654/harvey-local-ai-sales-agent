@@ -213,8 +213,12 @@ class Brain:
     @staticmethod
     def _extract_json(text: str) -> dict | list | None:
         """Strip optional code fences and extract a JSON object or array."""
-        cleaned = re.sub(r"^\\x60{3}(?:json)?\\s*", "", text.strip())
-        cleaned = re.sub(r"\\s*\\x60{3}$", "", cleaned)
+        cleaned = text.strip()
+        fence = chr(96) * 3
+        if cleaned.startswith(fence):
+            cleaned = re.sub(r"^.{3}(?:json)?\\s*", "", cleaned)
+        if cleaned.endswith(fence):
+            cleaned = cleaned[:-3].rstrip()
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
@@ -256,7 +260,7 @@ class Brain:
             return ""
         for key, value in kwargs.items():
             template = template.replace(f"{{{{{key}}}}}", str(value))
-        leftovers = re.findall(r"\\{\\{(\\w+)\\}\\}", template)
+        leftovers = re.findall(r"\{\{(\w+)\}\}", template)
         if leftovers:
             logger.warning("Prompt '%s' has unfilled variables: %s",
                            prompt_name, sorted(set(leftovers)))
