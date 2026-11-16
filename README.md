@@ -79,7 +79,7 @@ The independently authored `local_sales_agent/` subproject is MIT-licensed. Its 
 - The frontend production build has not yet been verified.
 - Scrapy and Playwright are provided for public-page research preloading; use only permitted public pages and obey robots/site usage rules.
 - Emails are generated as drafts only; this local multi-product app does not send email.
-- There is no automatic task queue; stored records remain available for manual retry.
+- Failed AI prompts are saved in a local SQLite queue and can be retried manually from the dashboard; there is no automatic background worker.
 - No hosted deployment or demonstration recording is included yet.
 
 See `local_sales_agent/README.md`, `local_sales_agent/docs/TECHNICAL_REPORT.md`, `local_sales_agent/docs/IMPLEMENTATION_STATUS.md` and `local_sales_agent/docs/OFFLINE_ACCEPTANCE.md` for the detailed setup, licence inventory, test procedure and known gaps.
