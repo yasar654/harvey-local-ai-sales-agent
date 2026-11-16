@@ -78,8 +78,22 @@ async def require_prospect(prospect_id: int):
     if not p: raise HTTPException(404,"Prospect not found")
     return p
 async def ai(prompt: str, event: str):
-    try: return await generate(prompt,event)
-    except LocalModelUnavailable as exc: raise HTTPException(503,str(exc))
+    try:
+        return await generate(prompt, event)
+    except LocalModelUnavailable as exc:
+        # Preserve the exact prompt locally so the user can retry after
+        # starting Ollama. No background or remote worker is started.
+        with connect() as db:
+            cur = db.execute(
+                "INSERT INTO ai_tasks(event,prompt,status,last_error) VALUES(?,?,?,?)",
+                (event, prompt, "queued", str(exc)[:2000]),
+            )
+            task_id = cur.lastrowid
+        raise HTTPException(
+            503,
+            f"{exc} The task is safely queued in local SQLite as task #{task_id}. "
+            "Start Ollama and retry it from GET /api/tasks.",
+        )
 
 @app.post("/api/ai/business-profile/{business_id}")
 async def business_profile(business_id: int):
@@ -206,6 +220,40 @@ def semantic_search(item: SemanticSearchIn):
             matches.append((float(np.dot(query,vector)),row))
     matches.sort(key=lambda x:x[0],reverse=True)
     return {"query":item.query,"model":MODEL_NAME,"results":[{"similarity":round(score,4),"prospect":prospect} for score,prospect in matches[:item.limit]]}
+
+@app.get("/api/tasks")
+def queued_tasks():
+    """List locally queued AI requests and their retry results."""
+    return rows("SELECT id,event,status,attempts,last_error,result,created_at,updated_at FROM ai_tasks ORDER BY id DESC LIMIT 100")
+
+@app.post("/api/tasks/{task_id}/retry")
+async def retry_queued_task(task_id: int):
+    """Manually retry one stored task once local Ollama is back online."""
+    task = one("SELECT * FROM ai_tasks WHERE id=?", (task_id,))
+    if not task:
+        raise HTTPException(404, "Queued task not found")
+    if task["status"] == "completed":
+        return {"task_id": task_id, "status": "completed", "result": task["result"]}
+    with connect() as db:
+        db.execute(
+            "UPDATE ai_tasks SET status='running', attempts=attempts+1, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            (task_id,),
+        )
+    try:
+        result = await generate(task["prompt"], task["event"])
+    except LocalModelUnavailable as exc:
+        with connect() as db:
+            db.execute(
+                "UPDATE ai_tasks SET status='queued', last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (str(exc)[:2000], task_id),
+            )
+        raise HTTPException(503, f"Local model is still unavailable. Task #{task_id} remains queued.")
+    with connect() as db:
+        db.execute(
+            "UPDATE ai_tasks SET status='completed', result=?, last_error='', updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            (result, task_id),
+        )
+    return {"task_id": task_id, "status": "completed", "result": result}
 
 @app.get("/api/logs")
 def logs(): return rows("SELECT * FROM logs ORDER BY id DESC LIMIT 100")
