@@ -1151,10 +1151,10 @@ def main():
         help="Max pages to crawl (default: 100)",
     )
     sub.add_argument(
-        "--provider", choices=["claude", "codex"], default=None,
-        help="Subscription to think with (default: the one in your config, else claude)",
+        "--provider", choices=["ollama"], default=None,
+        help="Local inference provider (Ollama only)",
     )
-    sub.add_argument("--model", default=None, help="Model for this provider (default: provider default)")
+    sub.add_argument("--model", default=None, help="Locally downloaded Ollama model tag (default: qwen3:8b)")
     sub.add_argument(
         "--reasoning-effort", default=None,
         help="Codex reasoning effort (minimal/low/medium/high/xhigh)",
