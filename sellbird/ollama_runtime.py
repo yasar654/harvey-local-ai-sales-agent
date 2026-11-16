@@ -35,6 +35,8 @@ class OllamaClient:
         self.base_url = self._validate_local_url(raw_url)
         if not self.model or any(ch.isspace() for ch in self.model):
             raise ValueError("OLLAMA_MODEL must be a non-empty Ollama model tag, e.g. qwen3:8b.")
+        if "cloud" in self.model.lower() or "remote" in self.model.lower():
+            raise ValueError("Cloud/remote model tags are forbidden. Use a locally downloaded model.")
 
     @staticmethod
     def _validate_local_url(value: str) -> str:
