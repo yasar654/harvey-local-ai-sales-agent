@@ -35,20 +35,19 @@ def log_event(event: str, status: str, duration_ms: int = 0, details: str = "", 
 async def ollama_status():
     if not _local_base_url() or DEFAULT_MODEL.endswith(":cloud"):
         return {"available": False, "url": OLLAMA_URL, "model": DEFAULT_MODEL,
-                "model_installed": False, "models": [],
+                "model_installed": False, "ready": False, "models": [],
                 "error": "Only a loopback Ollama endpoint and locally installed model are permitted."}
     try:
         async with httpx.AsyncClient(timeout=2.5, trust_env=False) as client:
             r = await client.get(f"{OLLAMA_URL}/api/tags")
             r.raise_for_status()
             models = [m.get("name", "") for m in r.json().get("models", [])]
+            installed = any(x == DEFAULT_MODEL or x.startswith(DEFAULT_MODEL + "-") for x in models)
             return {"available": True, "url": OLLAMA_URL, "model": DEFAULT_MODEL,
-                    "model_installed": any(x == DEFAULT_MODEL or x.startswith(DEFAULT_MODEL + "-") for x in models),
-                    "models": models}
+                    "model_installed": installed, "ready": installed, "models": models}
     except (httpx.HTTPError, ValueError) as exc:
         return {"available": False, "url": OLLAMA_URL, "model": DEFAULT_MODEL,
-                "model_installed": False, "models": [], "error": str(exc)}
-
+                "model_installed": False, "ready": False, "models": [], "error": str(exc)}
 async def generate(prompt: str, event: str, system: str = "You are a careful B2B sales research assistant. Do not invent facts. Distinguish evidence from inference.", temperature: float = 0.2) -> str:
     started = time.perf_counter()
     if not _local_base_url() or DEFAULT_MODEL.endswith(":cloud"):
