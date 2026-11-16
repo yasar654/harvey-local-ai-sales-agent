@@ -53,4 +53,4 @@ Do not count the offline test as passed until this has been performed on the tar
 
 This subproject is MIT-licensed under `LICENSE`. The parent Sellbird/Harvey source remains AGPL-3.0-only; do not remove the parent licence or NOTICE. Qwen3-8B and all-MiniLM-L6-v2 model cards identify Apache-2.0. See `docs/TECHNICAL_REPORT.md` for dependency licences and verification procedure.
 
-Known limitations: full offline acceptance and live inference are not yet verified on the target machine; email generation is draft-only; no automatic task queue is included; browser/Scrapy research helpers require online preloading and should obey robots/site policies; deployment and demo recording are outstanding.
+Known limitations: full offline acceptance and live inference are not yet verified on the target machine; email generation is draft-only; manual SQLite task queue/retry is included; no automatic worker runs; browser/Scrapy research helpers require online preloading and should obey robots/site policies; deployment and demo recording are outstanding.
