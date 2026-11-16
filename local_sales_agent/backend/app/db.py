@@ -10,10 +10,10 @@ SCHEMA = """
 PRAGMA foreign_keys=ON;
 CREATE TABLE IF NOT EXISTS businesses(
  id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
- website TEXT NOT NULL DEFAULT '', industry TEXT NOT NULL DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+ website TEXT NOT NULL DEFAULT '', industry TEXT NOT NULL DEFAULT '', profile TEXT NOT NULL DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS products(
  id INTEGER PRIMARY KEY, business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
- name TEXT NOT NULL, description TEXT NOT NULL, benefits TEXT NOT NULL DEFAULT '', target_market TEXT NOT NULL DEFAULT '',
+ name TEXT NOT NULL, description TEXT NOT NULL, benefits TEXT NOT NULL DEFAULT '', target_market TEXT NOT NULL DEFAULT '', icp TEXT NOT NULL DEFAULT '',
  created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS prospects(
  id INTEGER PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
@@ -52,6 +52,13 @@ def connect():
 def init_db():
     with connect() as db:
         db.executescript(SCHEMA)
+        # Additive migrations keep existing local databases compatible.
+        business_columns = {row[1] for row in db.execute("PRAGMA table_info(businesses)")}
+        if "profile" not in business_columns:
+            db.execute("ALTER TABLE businesses ADD COLUMN profile TEXT NOT NULL DEFAULT ''")
+        product_columns = {row[1] for row in db.execute("PRAGMA table_info(products)")}
+        if "icp" not in product_columns:
+            db.execute("ALTER TABLE products ADD COLUMN icp TEXT NOT NULL DEFAULT ''")
 
 def rows(sql: str, args=()):
     with connect() as db:
