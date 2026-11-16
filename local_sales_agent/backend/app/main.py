@@ -100,11 +100,13 @@ async def business_profile(business_id: int):
     b=one("SELECT * FROM businesses WHERE id=?",(business_id,))
     if not b: raise HTTPException(404,"Business not found")
     result=await ai(f"Create a concise, evidence-grounded company profile. Separate known facts from assumptions.\nCompany: {json.dumps(b)}\nReturn sections: overview, value proposition, differentiators, missing information.","business_profile")
+    with connect() as db: db.execute("UPDATE businesses SET profile=? WHERE id=?",(result,business_id))
     return {"result":result,"model":DEFAULT_MODEL,"mode":"local"}
 @app.post("/api/ai/icp/{product_id}")
 async def generate_icp(product_id: int):
     p=await require_product(product_id)
     result=await ai(f"Generate a precise B2B ideal customer profile for this product. Include firmographics, buyer roles, pains, triggers, disqualifiers and evidence signals. Avoid unsupported claims.\n{json.dumps(p)}","icp_generation")
+    with connect() as db: db.execute("UPDATE products SET icp=? WHERE id=?",(result,product_id))
     return {"result":result,"model":DEFAULT_MODEL,"mode":"local"}
 @app.post("/api/research/{prospect_id}")
 async def research(prospect_id: int):
@@ -113,7 +115,10 @@ async def research(prospect_id: int):
     if p["research"]:
         return {"prospect_id":prospect_id,"research":p["research"],"source":"stored_offline"}
     text=p["source_text"]
-    if p["website"]:
+    source="stored"
+    # Imported evidence is already local; do not make an online request if it exists.
+    if p["website"] and not text.strip():
+        source="website"
         parsed = urlparse(p["website"])
         host = (parsed.hostname or "").lower()
         is_public_host = bool(host) and parsed.scheme in {"http", "https"} and not parsed.username and not parsed.password
@@ -151,7 +156,7 @@ async def research(prospect_id: int):
             log_event("web_research", "partial", 0, str(exc));
     if not text: raise HTTPException(400,"No stored research text. Provide source_text or research this site while online.")
     with connect() as db: db.execute("UPDATE prospects SET research=? WHERE id=?",(text,prospect_id))
-    return {"prospect_id":prospect_id,"research":text,"source":"website+stored" if p["website"] else "stored"}
+    return {"prospect_id":prospect_id,"research":text,"source":source}
 @app.post("/api/ai/signals/{prospect_id}")
 async def classify_signals(prospect_id: int):
     p=await require_prospect(prospect_id)
