@@ -1,0 +1,4 @@
+company,website,industry,company_size,contact_name,title,email,location,source_text
+Acme Dental Group,https://example.com,dental,25-50,Jordan Lee,Practice Manager,jordan@example.test,Chicago IL,"The practice currently asks patients to call during business hours to schedule appointments. The careers page lists two open front-desk coordinator positions."
+BrightRoof Services,https://example.org,home services,10-25,Sam Patel,Owner,sam@example.test,Austin TX,"The company serves three metro areas and advertises emergency roof inspections. The contact page lists phone-only quote requests."
+Northwind HVAC,https://example.net,HVAC,50-100,Taylor Morgan,Operations Director,taylor@example.test,Denver CO,"The business recently expanded into a neighbouring county and is recruiting dispatch coordinators."
