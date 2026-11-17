@@ -2,8 +2,8 @@
 
 ## Online preparation
 
-- [ ] Install Ollama and run `ollama pull qwen3:8b`.
-- [ ] Verify the exact tag with `ollama list`; keep `OLLAMA_MODEL=qwen3:8b`.
+- [ ] Install Ollama and run `ollama pull qwen3:0.6b`.
+- [ ] Verify the exact tag with `ollama list`; keep `OLLAMA_MODEL=qwen3:0.6b`.
 - [ ] In `backend/`, install Python packages from `requirements.txt`.
 - [ ] Run `python download_embedding_model.py` to cache all-MiniLM-L6-v2 locally.
 - [ ] Install Playwright browser binaries with `playwright install chromium` if using that preloader.
