@@ -712,7 +712,7 @@ class BrainConfig(BaseModel):
     """
 
     provider: str = "ollama"
-    model: str = "qwen3:8b"
+    model: str = "qwen3:0.6b"
     base_url: str = ""  # blank uses OLLAMA_BASE_URL or localhost default
     reasoning_effort: str = ""  # retained for config compatibility
 
