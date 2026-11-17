@@ -5,7 +5,7 @@ This folder contains the independently authored local-first multi-product applic
 ## Run on Windows
 
 1. Install Ollama from https://ollama.com/download.
-2. In PowerShell run `ollama pull qwen3:8b`.
+2. In PowerShell run `ollama pull qwen3:0.6b`.
 3. Backend:
 
 ```powershell
@@ -16,7 +16,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 python download_embedding_model.py
 playwright install chromium
-$env:OLLAMA_MODEL = "qwen3:8b"
+$env:OLLAMA_MODEL = "qwen3:0.6b"
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
