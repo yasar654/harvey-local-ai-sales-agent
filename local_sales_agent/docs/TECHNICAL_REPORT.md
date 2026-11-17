@@ -11,7 +11,7 @@ The fork's parent `sellbird/brain.py` and configuration/setup path have been cha
 - React 18 + Vite dashboard: business, product, prospect, research, outreach, reply and execution log views.
 - FastAPI backend: request validation, workflow orchestration, local website research, task queue and REST API.
 - SQLite: businesses, products, prospects, stored research, generated outputs, local embeddings, model execution logs and retryable AI tasks.
-- Ollama: sole generative inference runtime; default `qwen3:8b`.
+- Ollama: sole generative inference runtime; default `qwen3:0.6b`.
 - Sentence Transformers: local `all-MiniLM-L6-v2` embeddings for semantic retrieval.
 - Research utilities: HTTPX + BeautifulSoup in the app; a separate Scrapy public-page preloader and Playwright same-host renderer for research preparation.
 - Hardware helper: psutil RAM/CPU reporting, NVIDIA `nvidia-smi` detection and Apple Silicon identification. Model recommendation is a heuristic, not a performance guarantee.
@@ -38,7 +38,7 @@ Licence inventory checked against project/model maintainers' published metadata 
 
 | Component | Role | Licence |
 |---|---|---|
-| Qwen3-8B (Ollama model tag `qwen3:8b`) | Local generative model | Apache-2.0 |
+| Qwen3-0.6B (Ollama model tag `qwen3:0.6b`) | Local generative model | Apache-2.0 |
 | Ollama | Local runtime/daemon | MIT |
 | sentence-transformers/all-MiniLM-L6-v2 | Local embedding model | Apache-2.0 |
 | FastAPI | Python API framework | MIT |
@@ -61,7 +61,7 @@ Licence inventory checked against project/model maintainers' published metadata 
 | SQLite | Local database engine | Public domain |
 
 Official licence/model sources:
-- Qwen3-8B model card: https://huggingface.co/Qwen/Qwen3-8B
+- Qwen3-0.6B model card: https://huggingface.co/Qwen/Qwen3-0.6B
 - Ollama source licence: https://github.com/ollama/ollama/blob/main/LICENSE
 - all-MiniLM-L6-v2 model card: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 - FastAPI: https://pypi.org/project/fastapi/
@@ -90,7 +90,7 @@ The app detects installed RAM and logical CPU count, tries `nvidia-smi` for an N
 
 ## Test and evidence procedure
 
-1. Install Ollama, run `ollama pull qwen3:8b`, verify `ollama list`.
+1. Install Ollama, run `ollama pull qwen3:0.6b`, verify `ollama list`.
 2. Install backend dependencies, cache embeddings, install Playwright browser binaries if needed, and install frontend packages while online.
 3. Start Ollama, FastAPI and Vite. Verify `GET /api/health` shows model installed.
 4. Create a business, at least two products and prospects. Import or collect website evidence and ensure research is persisted.
