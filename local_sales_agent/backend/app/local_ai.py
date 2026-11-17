@@ -6,7 +6,7 @@ import httpx
 from .db import connect
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:0.6b")
 
 def _local_base_url() -> bool:
     """Reject remote endpoints: this app must never run inference in a cloud."""
