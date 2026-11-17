@@ -23,7 +23,7 @@ The multi-product app is self-contained in `local_sales_agent/`. It provides:
 Install Ollama from https://ollama.com/download, then in PowerShell:
 
 ```powershell
-ollama pull qwen3:8b
+ollama pull qwen3:0.6b
 ollama list
 ```
 
@@ -37,7 +37,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 python download_embedding_model.py
 playwright install chromium
-$env:OLLAMA_MODEL = "qwen3:8b"
+$env:OLLAMA_MODEL = "qwen3:0.6b"
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
