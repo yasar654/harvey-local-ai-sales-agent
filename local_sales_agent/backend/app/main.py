@@ -184,9 +184,29 @@ async def score_prospect(prospect_id: int):
     return {"result":result,"score":score,"model":DEFAULT_MODEL}
 @app.post("/api/ai/email/{prospect_id}")
 async def email(prospect_id: int):
-    p=await require_prospect(prospect_id); product=await require_product(p["product_id"]) if p["product_id"] else None
-    result=await ai(f"Draft a concise, truthful, personalised B2B first-touch email. Use only supported facts; do not invent a relationship, metrics or trigger. Include subject and body.\nProduct: {json.dumps(product)}\nProspect: {json.dumps(p)}","personalised_email")
-    with connect() as db: db.execute("INSERT INTO generated(prospect_id,kind,content) VALUES(?,?,?)",(prospect_id,"email",result))
+    p=await require_prospect(prospect_id)
+    product=await require_product(p["product_id"]) if p["product_id"] else None
+
+    # Keep the email prompt deliberately short: Qwen3 0.6B is being run on
+    # a low-memory CPU-only laptop. Do not feed back previous scores,
+    # classifications, or the entire prospect/product database rows.
+    evidence=(p["research"] or p["source_text"] or "")[:1200]
+    prompt=(
+        "Write ONE short first-contact B2B sales email draft. "
+        "Return only these two fields, with no analysis, scoring, evaluation, or markdown:\n"
+        "Subject: <specific subject>\n"
+        "Body: <a polite email of 50 to 75 words with one clear question or call to action>\n"
+        "Use only the evidence below. Do not invent results, metrics, relationships, or verified facts. "
+        "This is a demonstration record; if the evidence says it is synthetic, do not imply it is a real company.\n"
+        f"Product: {p['product_id']} - {product['name'] if product else 'unspecified'}\n"
+        f"Product description: {(product['description'] if product else '')[:350]}\n"
+        f"Prospect: {p['company']}\n"
+        f"Contact: {p['contact_name']} ({p['title']})\n"
+        f"Evidence: {evidence}"
+    )
+    result=await ai(prompt,"personalised_email")
+    with connect() as db:
+        db.execute("INSERT INTO generated(prospect_id,kind,content) VALUES(?,?,?)",(prospect_id,"email",result))
     return {"result":result,"model":DEFAULT_MODEL}
 @app.post("/api/ai/reply")
 async def classify_reply(item: ReplyIn):
