@@ -40,3 +40,8 @@
 - React JSX syntax transpile check: passed.
 - Npm dependency installation and production build: not verified because required packages were not cached in the build environment.
 - Live Qwen3 inference and disconnected-network acceptance: not yet performed on the target laptop.
+
+
+## Port and low-memory runtime alignment
+
+The prepared target laptop runs FastAPI on localhost port 8010 because port 8000 is occupied. The React dashboard now defaults to `http://127.0.0.1:8010/api` (overridable with `VITE_API_BASE`). The offline acceptance script defaults to the same port (overridable with `HARVEY_API_BASE`) and allows up to 900 seconds per HTTP response, appropriate for a low-memory CPU-only machine. The configured local model for this laptop is `qwen3:0.6b`.
