@@ -2,7 +2,7 @@ import React,{useEffect,useState} from "react";
 import{createRoot}from"react-dom/client";
 import{Activity,Building2,Package,Users,Target,Mail,MessageSquare,ScrollText,Cpu,Upload,Sparkles,Search,Wifi,WifiOff,RefreshCw,Plus,ArrowRight,ShieldCheck}from"lucide-react";
 import"./style.css";
-const API="http://127.0.0.1:8000/api";
+const API=import.meta.env.VITE_API_BASE || "http://127.0.0.1:8010/api";
 async function req(path,options={}){const response=await fetch(API+path,options);let data={};try{data=await response.json()}catch{}if(!response.ok)throw Error(data.detail||"Request failed ("+response.status+")");return data}
 const json=(method,body)=>({method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
 function App(){
