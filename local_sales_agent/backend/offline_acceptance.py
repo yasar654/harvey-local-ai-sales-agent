@@ -2,10 +2,11 @@
 Run with internet DISCONNECTED and the three local services already started.
 """
 from __future__ import annotations
+import os
 import sys
 import httpx
 
-BASE = "http://127.0.0.1:8000/api"
+BASE = os.getenv("HARVEY_API_BASE", "http://127.0.0.1:8010/api").rstrip("/")
 SAMPLE_REPLY = "Thanks for reaching out. We already have a solution, but could you send details about pricing and integrations?"
 
 def call(client, method, path, **kwargs):
@@ -15,7 +16,7 @@ def call(client, method, path, **kwargs):
     return r.json()
 
 def main():
-    with httpx.Client(timeout=240) as client:
+    with httpx.Client(timeout=900) as client:
         health = call(client, "GET", "/health")
         inference = health["inference"]
         if not inference.get("available") or not inference.get("model_installed"):
