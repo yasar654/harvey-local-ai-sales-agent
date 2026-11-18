@@ -558,10 +558,14 @@ MIGRATIONS: list[str] = [
     ALTER TABLE conversations ADD COLUMN mailbox_id TEXT DEFAULT '';
     CREATE INDEX IF NOT EXISTS idx_outbox_mailbox_sent ON outbox(mailbox_id, status, sent_at);
     """,
+    # v17: count local Ollama calls separately from legacy subscription usage.
+    """
+    ALTER TABLE usage_log ADD COLUMN ollama_calls INTEGER DEFAULT 0;
+    """,
 ]
 
-BRAIN_PROVIDERS = ("claude", "codex")
-_USAGE_LOG_COLUMN = {"claude": "claude_calls", "codex": "codex_calls"}
+BRAIN_PROVIDERS = ("ollama",)
+_USAGE_LOG_COLUMN = {"ollama": "ollama_calls"}
 
 # When a company was last profiled: the newer of the explicit check stamp
 # (set on every attempt, reachable or not) and its latest profile observation
@@ -2607,7 +2611,7 @@ class StateManager:
 
     # ── Usage Tracking ──
 
-    async def get_usage_today(self, provider: str = "claude") -> int:
+    async def get_usage_today(self, provider: str = "ollama") -> int:
         """Brain calls made today on one provider's subscription."""
         column = _USAGE_LOG_COLUMN[provider]
         today = date.today().isoformat()
@@ -2618,7 +2622,7 @@ class StateManager:
                 row = await cursor.fetchone()
                 return (row[0] or 0) if row else 0
 
-    async def increment_usage(self, provider: str = "claude"):
+    async def increment_usage(self, provider: str = "ollama"):
         column = _USAGE_LOG_COLUMN[provider]
         today = date.today().isoformat()
         async with self._connect() as db:
@@ -2650,7 +2654,7 @@ class StateManager:
         is_error: bool = False,
         source: str = "result_json",
         created_at: str | None = None,
-        provider: str = "claude",
+        provider: str = "ollama",
     ) -> bool:
         """Insert one usage row (one model within one brain call).
 
@@ -2781,11 +2785,10 @@ class StateManager:
             ) as cursor:
                 auto_reply_handoffs = (await cursor.fetchone())[0]
             async with db.execute(
-                "SELECT claude_calls, codex_calls FROM usage_log WHERE date = ?", (today,)
+                "SELECT claude_calls, codex_calls, ollama_calls FROM usage_log WHERE date = ?", (today,)
             ) as cursor:
                 usage_row = await cursor.fetchone()
-                usage_today = (usage_row[0] or 0) if usage_row else 0
-                codex_today = (usage_row[1] or 0) if usage_row else 0
+                usage_today = (usage_row[2] or 0) if usage_row else 0
 
         return {
             "prospects": prospect_counts,
@@ -2802,8 +2805,8 @@ class StateManager:
             "sending_paused": bool(await self.get_setting("sending_paused")),
             "open_conversations": open_conversations,
             "auto_reply_handoffs": auto_reply_handoffs,
-            "usage_today": usage_today,  # Claude calls (kept for compatibility)
-            "usage_today_by_provider": {"claude": usage_today, "codex": codex_today},
+            "usage_today": usage_today
+            "usage_today_by_provider": {"ollama": usage_today},
             # Companies discovered but not yet read. The heartbeat profiles
             # these every cycle — it is free, so it never competes with the
             # Claude budget the rest of the loop is rationing.

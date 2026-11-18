@@ -165,3 +165,9 @@ compliance:
 #     company: "{company}"
 #     website: "{website}"
 #     email: "{email}"
+
+# All model inference is local. Only loopback Ollama endpoints are accepted.
+brain:
+  provider: ollama
+  model: qwen3:0.6b
+  base_url: http://127.0.0.1:11434

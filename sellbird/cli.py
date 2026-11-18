@@ -237,8 +237,7 @@ def cmd_status(args):
         print(f"  Active campaigns:     {summary['active_campaigns']}")
         print(f"  Open conversations:   {summary['open_conversations']}")
         by_provider = summary.get("usage_today_by_provider", {})
-        print(f"  Claude calls today:   {by_provider.get('claude', summary['usage_today'])}")
-        print(f"  Codex calls today:    {by_provider.get('codex', 0)}")
+        print(f'  Local Ollama calls today: {by_provider.get("ollama", summary["usage_today"])}')
         from sellbird.config import compliance_notice, load_config, sending_notice
         loaded = None
         try:
@@ -307,14 +306,10 @@ def cmd_status(args):
                     healthy = False
                     print(f"  Brain:                {label} NOT READY")
                     print(f"                        {problem}")
-                elif brain.provider == "codex":
-                    print(f"  Brain:                {label} ready (CLI, isolation, login, "
-                          "model and account checked; no prompt sent)")
                 else:
-                    print(f"  Brain:                {label} CLI isolation flags present "
-                          "(login not checked: Claude is checked by its first call)")
+                    print(f"  Brain:                {label} ready (local daemon and model checked; no prompt sent)")
         elif brain_status.get("status") == "paused":
-            label = {"claude": "Claude", "codex": "Codex"}.get(brain_status.get("provider"), "Brain")
+            label = {"ollama": "Ollama (local)"}.get(brain_status.get("provider"), "Brain")
             print(f"  Brain:                {label} PAUSED since {brain_status.get('since', '?')}")
             print(f"                        {brain_status.get('reason', '')}")
         print()
@@ -326,92 +321,37 @@ def cmd_status(args):
 
 
 def cmd_usage(args):
-    """Show brain usage: active provider's quota, totals, breakdowns."""
+    """Show local Ollama inference totals and breakdowns."""
     from sellbird.state import StateManager
-    from sellbird.config import ConfigError, load_brain_config
 
     async def _usage():
         state = StateManager()
         await state.init_db()
-
-        try:
-            brain_config = load_brain_config()
-        except ConfigError as e:
-            print(f"  {e}")
-            brain_config = None
-
-        # Live quota for the ACTIVE provider only (best-effort). Each
-        # subscription's gauge is read from its own source and labelled as
-        # such; one is never shown as the other.
-        windows = None
-        provider = brain_config.provider if brain_config else None
-        try:
-            if provider == "codex":
-                from sellbird.codex import CodexClient, CodexQuotaClient
-                windows = await CodexQuotaClient(
-                    CodexClient(model=brain_config.model)).get_utilization()
-            elif provider == "claude":
-                from sellbird.integrations.quota import QuotaClient
-                windows = await QuotaClient().get_utilization()
-        except Exception:
-            pass
-
-        label = {"claude": "Claude", "codex": "Codex"}.get(provider, "Brain")
-        print(f"\n  {label} Usage")
+        print("\\n  Ollama (local) Usage")
         print("  " + "=" * 52)
-        if windows:
-            labels = {"five_hour": "5-hour window", "seven_day": "Weekly",
-                      "limit_reached": "Usage limit"}
-            for key, w in windows.items():
-                resets = f"  (resets {w['resets_at']})" if w.get("resets_at") else ""
-                print(f"  {labels.get(key, key):<16} {w['utilization']:5.1f}% used{resets}")
-        elif provider == "codex":
-            print("  Quota gauge unavailable (check 'codex login', the Codex CLI "
-                  "version, and network).")
-        elif provider == "claude":
-            print("  Quota gauge unavailable (run 'claude login' or check network).")
-
+        print("  All generation runs on this computer; there is no subscription quota or token billing.")
         totals = await state.usage_totals()
         print()
         print(f"  {'Period':<10} {'Calls':>7} {'Input':>12} {'Output':>10} {'Cache read':>12}")
         for label, key in (("Today", "today"), ("7 days", "week"), ("30 days", "month")):
-            t = totals.get(key) or {}
+            total = totals.get(key) or {}
             print(
-                f"  {label:<10} {t.get('calls', 0):>7} "
-                f"{t.get('input_tokens', 0):>12,} {t.get('output_tokens', 0):>10,} "
-                f"{t.get('cache_read_tokens', 0):>12,}"
+                f"  {label:<10} {total.get('calls', 0):>7} "
+                f"{total.get('input_tokens', 0):>12,} {total.get('output_tokens', 0):>10,} "
+                f"{total.get('cache_read_tokens', 0):>12,}"
             )
-
-        by_provider = await state.usage_by_provider(days=args.days)
-        if len(by_provider) > 1 or (by_provider and by_provider[0]["provider"] != "claude"):
-            print(f"\n  By provider (last {args.days} days):")
-            for row in by_provider:
-                print(
-                    f"    {row['provider']:<14} {row['calls']:>5} calls  "
-                    f"{row['output_tokens']:>10,} out tokens"
-                )
 
         by_agent = await state.usage_by_agent(days=args.days)
         if by_agent:
-            print(f"\n  By agent (last {args.days} days):")
+            print(f"\\n  By agent (last {args.days} days):")
             for row in by_agent:
-                print(
-                    f"    {row['agent']:<14} {row['calls']:>5} calls  "
-                    f"{row['output_tokens']:>10,} out tokens"
-                )
+                print(f"    {row['agent']:<14} {row['calls']:>5} calls  {row['output_tokens']:>10,} out tokens")
 
         by_task = await state.usage_by_task(days=args.days)
         if by_task:
-            print(f"\n  By task (last {args.days} days):")
+            print(f"\\n  By task (last {args.days} days):")
             for row in by_task[:10]:
-                print(
-                    f"    {row['task']:<22} {row['calls']:>5} calls  "
-                    f"{row['output_tokens']:>10,} out tokens"
-                )
-        print(
-            "\n  Subscription plans aren't billed per token — these are usage"
-            "\n  counts, not costs.\n"
-        )
+                print(f"    {row['task']:<22} {row['calls']:>5} calls  {row['output_tokens']:>10,} out tokens")
 
     asyncio.run(_usage())
 
@@ -1151,10 +1091,10 @@ def main():
         help="Max pages to crawl (default: 100)",
     )
     sub.add_argument(
-        "--provider", choices=["claude", "codex"], default=None,
-        help="Subscription to think with (default: the one in your config, else claude)",
+        "--provider", choices=["ollama"], default=None,
+        help="Local inference provider (Ollama only)",
     )
-    sub.add_argument("--model", default=None, help="Model for this provider (default: provider default)")
+    sub.add_argument("--model", default=None, help="Locally downloaded Ollama model tag (default: qwen3:8b)")
     sub.add_argument(
         "--reasoning-effort", default=None,
         help="Codex reasoning effort (minimal/low/medium/high/xhigh)",
