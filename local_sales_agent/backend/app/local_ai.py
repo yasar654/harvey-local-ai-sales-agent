@@ -58,11 +58,17 @@ async def generate(prompt: str, event: str, system: str = "You are a careful B2B
             "model": DEFAULT_MODEL,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": temperature},
+            "think": False,
+            "keep_alive": "30s",
+            "options": {
+                "temperature": temperature,
+                "num_ctx": 1024,
+                "num_predict": 192,
+            },
         }
         if event in {"buying_signal_classification", "prospect_scoring", "reply_classification"}:
             request_body["format"] = "json"
-        async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=3.0), trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(600.0, connect=5.0), trust_env=False) as client:
             response = await client.post(f"{OLLAMA_URL}/api/chat", json=request_body)
             response.raise_for_status()
             payload = response.json()
