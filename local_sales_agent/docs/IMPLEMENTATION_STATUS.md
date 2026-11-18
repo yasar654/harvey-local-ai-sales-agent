@@ -15,8 +15,8 @@ Last updated: 18 November 2026. Status distinguishes source-code presence from b
 | Buying-signal classification | Implemented in code; not yet live-verified | `POST /api/ai/signals/{prospect_id}`; inspect evidence and avoid unsupported signals |
 | Problem-statement generation | Implemented in code; not yet live-verified | `POST /api/ai/problem/{prospect_id}` |
 | Prospect scoring | Implemented in code; not yet live-verified | `POST /api/ai/score/{prospect_id}`; inspect score rationale and JSON quality |
-| Personalised email generation | Implemented in code; not yet live-verified | `POST /api/ai/email/{prospect_id}`; draft only, no email sending |
-| Reply classification | Implemented in code; not yet live-verified | `POST /api/ai/reply` |
+| Personalised email generation | **Live generated for both synthetic demo prospects; formatting needs refinement** | `POST /api/ai/email/{prospect_id}` returned product-specific text for AppointmentPro and CustomerFlow CRM. Output appended product metadata after the body, so clean email formatting still needs refinement; draft only, no sending |
+| Reply classification | **Live verified on synthetic demo reply** | `POST /api/ai/reply` returned category `interested`, sentiment `positive`, rationale, and suggested next step using Qwen3 0.6B |
 | Local embeddings and semantic retrieval | Implemented in code; **not installed/tested on target laptop** | Cache all-MiniLM-L6-v2 locally, index a prospect and run semantic search |
 | Hardware detection | Verified in health response | Target machine reported 3.9 GB RAM, 2 CPU cores and no detected GPU; recommendation is heuristic |
 | Local execution logs | **Verified for business-profile event** | `GET /api/logs` showed `business_profile`, `qwen3:0.6b`, `success`, 341,733 ms and local loopback detail |
@@ -55,3 +55,13 @@ The target laptop runs FastAPI on localhost port 8010 because port 8000 is occup
 ## Acceptance rule
 
 “Implemented in code” is not equivalent to a demonstrated successful workflow. Do not claim the project is fully accepted or offline-tested until the actual submission laptop has completed all required generation workflows with Wi-Fi/Ethernet disconnected after downloading all dependencies and model files. Do not present the four prepared-workspace unit/smoke tests as a substitute for the offline acceptance test.
+
+
+## Additional live workflow evidence — 18 November 2026
+
+- Stored research was read back for two synthetic prospects: Demo Dental Group (372 characters) and Demo Home Services (396 characters).
+- Buying-signal classification ran for both. The outputs explicitly caveated that the evidence was synthetic and not independently verified.
+- Prospect scoring ran for both and returned score 0 because evidence was synthetic/unverifiable. Do not represent these scores as real lead qualification.
+- Personalised email endpoint returned text for both prospects and referenced their respective products. Output formatting was imperfect because product metadata appeared after the draft body; refine before presenting as polished outreach.
+- Reply classification ran on a synthetic appointment-scheduling enquiry and returned category `interested`, sentiment `positive`, rationale, and a suggested follow-up.
+- These records are synthetic acceptance/demo data, not real prospect research.
