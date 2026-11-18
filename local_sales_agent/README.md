@@ -10,14 +10,14 @@ This folder contains the independently authored local-first multi-product applic
 
 ```powershell
 cd local_sales_agent\backend
-py -3.11 -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python download_embedding_model.py
 playwright install chromium
 $env:OLLAMA_MODEL = "qwen3:0.6b"
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8010
 ```
 
 4. In a second PowerShell window:
@@ -28,7 +28,7 @@ npm install
 npm run dev
 ```
 
-5. Open http://127.0.0.1:5173. API health: http://127.0.0.1:8000/api/health.
+5. Open http://127.0.0.1:5173. API health: http://127.0.0.1:8010/api/health.
 
 ## Workflow
 
@@ -51,6 +51,6 @@ Do not count the offline test as passed until this has been performed on the tar
 
 ## Licensing and limits
 
-This subproject is MIT-licensed under `LICENSE`. The parent Sellbird/Harvey source remains AGPL-3.0-only; do not remove the parent licence or NOTICE. Qwen3-8B and all-MiniLM-L6-v2 model cards identify Apache-2.0. See `docs/TECHNICAL_REPORT.md` for dependency licences and verification procedure.
+This subproject is MIT-licensed under `LICENSE`. The parent Sellbird/Harvey source remains AGPL-3.0-only; do not remove the parent licence or NOTICE. Qwen3-0.6B and all-MiniLM-L6-v2 model cards identify Apache-2.0. See `docs/TECHNICAL_REPORT.md` for dependency licences and verification procedure.
 
 Known limitations: full offline acceptance and live inference are not yet verified on the target machine; email generation is draft-only; manual SQLite task queue/retry is included; no automatic worker runs; browser/Scrapy research helpers require online preloading and should obey robots/site policies; deployment and demo recording are outstanding.
